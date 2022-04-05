@@ -1,4 +1,10 @@
-import { createContext, ReactNode, useContext, useState } from "react";
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { toast } from "react-toastify";
 import { api } from "../services/api";
 import { Product, Stock } from "../types";
@@ -34,7 +40,17 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
 
   const addProduct = async (productId: number) => {
     try {
-      // TODO
+      const getProduct = await api
+        .get(`/products/${productId}`)
+        .then((result) => result.data);
+
+      localStorage.setItem(
+        "@RocketShoes:cart",
+        JSON.stringify([...cart, getProduct])
+      );
+      setCart([...cart, getProduct]);
+
+      updateProductAmount({ productId, amount: 1 });
     } catch {
       // TODO
     }
@@ -53,9 +69,15 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
     amount,
   }: UpdateProductAmount) => {
     try {
-      // TODO
+      let getProductAmount: Stock = await api
+        .get(`/stock/${productId}`)
+        .then((result) => result.data);
+      if (amount <= getProductAmount.amount) {
+        getProductAmount.amount -= amount;
+        return await api.put(`/stock/${productId}`, getProductAmount);
+      }
     } catch {
-      // TODO
+      console.log("deu erro");
     }
   };
 
