@@ -40,18 +40,46 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
 
   const addProduct = async (productId: number) => {
     try {
-      const getProduct = await api
-        .get(`/products/${productId}`)
-        .then((result) => result.data);
+      const getProducts = [...cart];
+      const productSelected = getProducts.find(
+        (product) => product.id === productId
+      );
+      const stockAmount = await api
+        .get(`stock/${productId}`)
+        .then((response) => response.data.amount);
+      const currentAmount = productSelected ? productSelected.amount : 0;
+      const amount = currentAmount + 1;
 
-      const storagedCart = localStorage.getItem("@RocketShoes:cart");
-
-      if (storagedCart) {
-        const productsOnCart = JSON.parse(storagedCart);
+      if (amount > stockAmount) {
+        toast.error("Quantidade solicitada fora de estoque");
+        return;
       }
-      localStorage.setItem("@RocketShoes:cart", JSON.stringify([getProduct]));
-      setCart([getProduct]);
-      return;
+
+      if (productSelected) {
+        productSelected.amount = amount;
+      } else {
+        const pullProduct: Product = await api
+          .get(`products/${productId}`)
+          .then((response) => response.data);
+        pullProduct.amount = amount;
+        getProducts.push(pullProduct);
+      }
+
+      setCart(getProducts);
+      localStorage.setItem("@RocketShoes:cart", JSON.stringify(getProducts));
+
+      // const getProduct = await api
+      //   .get(`/products/${productId}`)
+      //   .then((result) => result.data);
+
+      // const storagedCart = localStorage.getItem("@RocketShoes:cart");
+
+      // if (storagedCart) {
+      //   const productsOnCart = JSON.parse(storagedCart);
+      // }
+      // localStorage.setItem("@RocketShoes:cart", JSON.stringify([getProduct]));
+      // setCart([getProduct]);
+      // return;
       // updateProductAmount({ productId, amount: 1 });
     } catch {
       toast.error("Erro na adição do produto");
